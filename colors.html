@@ -1,0 +1,418 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Colors</title><script>
+const data = `
+
+--- colors ---
+* separate each palette with a title between brackes
+* add colors as hex codes
+* save and refresh in browser
+* blank lines and comments are fine
+* don't edit outside the --- boundaries
+* checkout the latest version / more info: https://github.com/butnotexactly/colors
+
+
+[oil]
+#fbf5ef
+#f2d3ab
+#c69fa5
+#8b6d9c
+#494d7e
+#272744
+
+
+[clay]
+#b4b884
+#849a78
+#5c7c68
+#205e64
+#585e5c
+#142858
+#b49ab8
+#144054
+#404068
+#c87c94
+#e4d4dc
+#e4d488
+#edb884
+#e49a80
+#907c68
+#142230
+#6c3444
+#885e54
+#5c7c90
+#849aac
+#b4d4e0
+#e8f0dc
+
+
+[cloud]
+#fffefc
+#fbfcf7
+#fefaf1
+#f5fefd
+#fdf6e4
+#fffada
+#fef9e3
+#fbfcf7
+#fafaf2
+#f7efec
+#faf3eb
+#fff1e6
+#f2ead3
+#e7dfcc
+#ffffff
+#fbfcf7
+#ecfcfc
+#fffefc
+#fbf5df
+#faf5ef
+
+
+[flat ui]
+#2c3e50
+#e74c3c
+#ecf0f1
+#3498db
+#2980b9
+
+
+[stripe ui]
+#ffffff
+#f6f9fc
+#8898aa
+#424770
+#3ecf8e
+#24b47e
+#6772e5
+#32325d
+
+
+
+
+--- code and styling below (safe to ignore) ---
+
+
+`;
+
+let palettes = {};
+let note;
+let main;
+document.addEventListener('DOMContentLoaded', function () {
+  main = document.querySelector('.palettes');
+  main.addEventListener('click', click, false);
+  note = document.querySelector('#note');
+  document.querySelector('#picker').addEventListener('input', setBg, false);
+  init();
+});
+
+function init() {
+  const parts = data.split('[');
+  parts.forEach(part => {
+    let name;
+    let hexes = [];
+    part.split('\n').forEach(line => {
+      if(line) {
+        if(!name) {
+          const match = /(.*)\]/.exec(line);
+          if(match)
+            name = match[1];
+          return;
+        }
+
+        const hex = /#[0-9a-f]+/i.exec(line);
+        if(hex) hexes.push(hex[0]);
+      }
+    });
+    if(name && hexes) {
+      palettes[name] = hexes;
+    }
+  });
+
+  for (let name in palettes) {
+    const hexes = palettes[name];
+    let [cols, rows] = dimensions(hexes.length);
+
+    let block = document.createElement('div');
+    block.className = 'block';
+
+    let title = document.createElement('h2');
+    title.innerText = name;
+    block.appendChild(title)
+
+    let palette = document.createElement('div');
+    palette.className = 'palette';
+    palette.style.fontSize = `${50 + 100/cols}%`;
+
+    hexes.forEach(hex => {
+      let color = document.createElement('div');
+      color.className = 'color';
+      if(useDarkLabel(hex))
+        color.classList.add('dark');
+      color.innerHTML = `<div class="hex">${hex}</div><div class="copy-label">&#x1f4cb; copy</div>`;
+      color.style.flexBasis = `${100/cols}%`;
+      color.style.backgroundColor = hex;
+      palette.appendChild(color);
+    });
+
+    block.appendChild(palette);
+    main.appendChild(block);
+  }
+}
+
+function click(e) {
+  if (e.target !== e.currentTarget) {
+    if(e.target.classList.contains('hex')) {
+      navigator.clipboard.writeText(e.target.innerText).then(() => {
+        showNote(e.target.innerText);
+      },() => {
+        showNote(null, false);
+      });
+    }
+    else if(e.target.tagName == 'H2') {
+      let text = palettes[e.target.innerText].join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        showNote(`${e.target.innerText} (all colors)`);
+      },() => {
+        showNote(null, false);
+      });
+
+    }
+  }
+  e.stopPropagation();
+  e.preventDefault();
+}
+
+function dimensions(n) {
+  switch(n) {   
+    case 3: return [3, 1]
+    case 8: return [4, 2]
+    default:
+    a = Math.ceil(Math.sqrt(n))
+    b = Math.ceil(n/a)
+    return [Math.max(a, b), Math.min(a, b)]
+  }
+}
+
+function luminanace(rgb) {
+  var a = rgb.map(function (v) {
+    v /= 255;
+    return v <= 0.03928
+    ? v / 12.92
+    : Math.pow( (v + 0.055) / 1.055, 2.4 );
+  });
+  return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+}
+
+function contrast(rgb1, rgb2) {
+  const l1 = luminanace(rgb1) + 0.05;
+  const l2 = luminanace(rgb2) + 0.05;
+  return (l1 > l2) ? l1 / l2 : l2 / l1;
+}
+
+const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => {
+  const hex = x.toString(16)
+  return hex.length === 1 ? '0' + hex : hex
+}).join('');
+
+const hexToRgb = (hex) =>
+hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i
+  ,(m, r, g, b) => '#' + r + r + g + g + b + b)
+.substring(1).match(/.{2}/g)
+.map(x => parseInt(x, 16));
+
+const useDarkLabel = (bg) =>
+contrast(hexToRgb(bg), hexToRgb('#333')) > contrast(hexToRgb(bg), hexToRgb('#fff'));
+
+let noteTimeoutId;
+
+function showNote(copied, success=true) {
+  note.classList.remove('hide');
+  if(copied.includes('#')) {
+    note.style.backgroundColor = copied;
+    note.style.color = useDarkLabel(copied) ? '#333' : '#fff';
+  }
+  else {
+    note.style.backgroundColor = '';
+    note.style.color = '';
+  }
+  if(success)
+    note.innerText = `✓ Copied ${copied} to clipboard.`
+  else
+    note.innerText = `× Failed to copy to clipboard.`;
+
+  window.clearTimeout(noteTimeoutId);
+  noteTimeoutId = window.setTimeout(hideNote, 1500);
+}
+
+function hideNote() {
+  note.classList.add('hide');
+}
+
+function setBg(event) {
+  let hex = event.target.value;
+  document.body.style.backgroundColor = hex;
+  document.body.style.color = useDarkLabel(hex) ? '#333' : '#fff';
+}
+
+</script>
+<style>
+html {
+  box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+body {
+  scroll-behavior: smooth;
+  margin: 50px;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+  Segoe UI Symbol;
+  background-color: white;
+  color: #333;
+}
+
+a {
+  color: inherit;
+}
+
+p {
+  margin: 0;
+}
+
+header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.palettes {
+  display: flex;
+  margin: -20px;
+  flex-wrap: wrap;
+}
+
+.block {
+  margin: 20px;
+  font-size: 22px;
+}
+h2 {
+  cursor: pointer;
+  font-size: 30px;
+  margin-left: 60px;
+  margin-bottom: 20px;
+}
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  width: 450px;
+  padding: 3px;
+}
+
+.color {
+  cursor: pointer;
+  position: relative;
+  flex-basis: 33.333%;
+  box-sizing: border-box;
+  color: white;
+}
+
+.color::before {
+  content: '';
+  display: block;
+  padding-top: 100%;
+}
+
+.hex {
+  z-index: 100;
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.copy-label {
+  pointer-events: none;
+  visibility: hidden;
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  bottom: 18%;
+  font-size: 12px;
+}
+
+.color:hover .copy-label {
+  visibility: visible;
+}
+
+.dark {
+  color: #333;
+}
+
+.note {
+  pointer-events: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  border-radius: 3px;
+  color: #fff;
+  background-color: #333;
+  padding: 10px 25px;
+  transition: opacity 0.6s cubic-bezier(0.5, 0, 0, 1) 0s;
+  opacity: 1;
+}
+
+.hide {
+  opacity: 0;
+}
+
+@media only screen and (max-width: 600px) {
+  header {
+    display: block;
+  }
+  .block {
+    font-size: 16px;
+  }
+  .palette {
+    width: 300px;
+  }
+
+  .picker-group {
+    margin-top: 20px;
+  }
+  .picker_label {
+    display: none;
+  }
+}
+
+
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Colors</h1>
+      <p>Open this file in a text editor to add colors</p>
+      <p>Click a color to copy it, click a title to copy an entire palette</p>
+      <p>Check out the latest version: <a href="https://github.com/butnotexactly/colors">https://github.com/butnotexactly/colors</a></p>
+    </div>
+    <div class="picker-group">
+      <input type="color" id="picker" name="picker"
+      value="#ffffff">
+      <label class="picker-label" for="picker">Set Background</label>
+    </div>
+  </header>
+  <div class="palettes"></div>
+  <div id="note" class="note hide"></div>
+</body>
+</html>
