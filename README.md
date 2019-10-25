@@ -9,6 +9,8 @@ Codepen Demo: https://codepen.io/butnotexactly/pen/XWWRYdR
 
 Save the [html file](https://raw.githubusercontent.com/butnotexactly/colors/master/colors.html) (optionally to your Dropbox, repository, USB drive or cloud folder).
 
+Alternatively, host one online using something like Codepen, and bookmark the URL: https://codepen.io/butnotexactly/pen/XWWRYdR
+
 ### To add colors:
 Open the file in a text editor (Notepad, Sublime Text) and add colors or palettes in the provided space. The syntax is extremely simple; brackets for a palette, a hexcode for a color. Comments and blank lines are fine too and will be ignored.
 
