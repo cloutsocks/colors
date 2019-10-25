@@ -193,7 +193,7 @@ function dimensions(n) {
   }
 }
 
-function luminanace(rgb) {
+function luminance(rgb) {
   var a = rgb.map(function (v) {
     v /= 255;
     return v <= 0.03928
@@ -204,8 +204,8 @@ function luminanace(rgb) {
 }
 
 function contrast(rgb1, rgb2) {
-  const l1 = luminanace(rgb1) + 0.05;
-  const l2 = luminanace(rgb2) + 0.05;
+  const l1 = luminance(rgb1) + 0.05;
+  const l2 = luminance(rgb2) + 0.05;
   return (l1 > l2) ? l1 / l2 : l2 / l1;
 }
 
