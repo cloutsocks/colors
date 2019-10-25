@@ -1,6 +1,7 @@
 # colors
 
-A simple way to organize, preview and copy your favorite color palettes all in a single file.
+A simple way to organize, preview and copy your favorite color palettes all in a single file.  
+Codepen Demo: https://codepen.io/butnotexactly/pen/XWWRYdR
 
 ![Colors Preview](preview.png)
 
